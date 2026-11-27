@@ -1,17 +1,21 @@
 import { useState } from 'react'
 import { login, register } from '../api'
 
+// Panneau de connexion/inscription (visible uniquement deconnecte).
+// Le meme formulaire sert aux deux actions : login verifie le mot de passe,
+// register cree le compte — les deux renvoient un token.
 export default function AuthPanel({ onLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
+  // action = login ou register (memes arguments, meme reponse {token, username})
   async function submit(action) {
     try {
       setError('')
       onLogin(await action(username, password))
     } catch (e) {
-      setError(e.message)
+      setError(e.message)   // ex. "identifiants invalides"
     }
   }
 

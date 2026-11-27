@@ -8,9 +8,11 @@ import FilterPanel from './components/FilterPanel'
 import ImplantationPanel from './components/ImplantationPanel'
 import MapView from './components/MapView'
 
+// etat initial des filtres : rien de coche
 const EMPTY_FILTERS = { d1: [], d2: [], d3: [], communes: [] }
 
-// bbox de la Normandie (minLon, minLat, maxLon, maxLat)
+// bbox de la Normandie (minLon, minLat, maxLon, maxLat) :
+// sert a detecter si une adresse geocodee est hors de la zone d'etude
 const ZONE_BBOX = [-2.0, 48.1, 1.9, 50.1]
 
 function inZone(lng, lat) {
@@ -19,22 +21,25 @@ function inZone(lng, lat) {
 }
 
 function App() {
-  const [logged, setLogged] = useState(!!getToken())
+  // ── Etat global de l'application ──
+  const [logged, setLogged] = useState(!!getToken())          // token present = deja connecte
   const [user, setUser] = useState(localStorage.getItem('username') || '')
-  const [domaines, setDomaines] = useState([])
-  const [filters, setFilters] = useState(EMPTY_FILTERS)
-  const [communeObjs, setCommuneObjs] = useState([])
-  const [implantations, setImplantations] = useState([])
-  const [adding, setAdding] = useState(false)
-  const [draft, setDraft] = useState(null)
-  const [flyTo, setFlyTo] = useState(null)
-  const [searched, setSearched] = useState(null)
-  const [focusEquip, setFocusEquip] = useState(null)
+  const [domaines, setDomaines] = useState([])                // arbre des domaines BPE (niveaux 1-3)
+  const [filters, setFilters] = useState(EMPTY_FILTERS)       // filtres actifs (codes domaines + ids communes)
+  const [communeObjs, setCommuneObjs] = useState([])          // communes selectionnees (objets complets, pour les chips)
+  const [implantations, setImplantations] = useState([])      // points personnels de l'utilisateur
+  const [adding, setAdding] = useState(false)                 // mode "cliquer pour placer un point"
+  const [draft, setDraft] = useState(null)                    // point pose, formulaire pas encore valide
+  const [flyTo, setFlyTo] = useState(null)                    // [lng, lat] vers lequel la carte doit voler
+  const [searched, setSearched] = useState(null)              // adresse geocodee affichee (marqueur violet)
+  const [focusEquip, setFocusEquip] = useState(null)          // equipement trouve par recherche (marqueur orange)
 
+  // charge l'arbre des domaines une seule fois au demarrage
   useEffect(() => {
     fetchDomaines().then(setDomaines).catch(console.error)
   }, [])
 
+  // recharge les implantations (sert apres login/logout et apres chaque CRUD)
   const refreshImplantations = useCallback(() => {
     if (getToken()) fetchImplantations().then(setImplantations).catch(console.error)
     else setImplantations([])
@@ -42,46 +47,57 @@ function App() {
 
   useEffect(refreshImplantations, [logged, refreshImplantations])
 
+  // ── Authentification ──
   function onLogin(data) {
-    localStorage.setItem('token', data.token)
+    localStorage.setItem('token', data.token)       // le token persiste entre les sessions
     localStorage.setItem('username', data.username)
     setUser(data.username)
     setLogged(true)
   }
 
   async function signOut() {
-    try { await logout() } catch { /* token deja invalide */ }
+    try { await logout() } catch { /* token deja invalide cote serveur */ }
     localStorage.removeItem('token')
     localStorage.removeItem('username')
     setLogged(false)
   }
 
+  // ── Callbacks de la barre de recherche unifiee ──
+
+  // clic sur une adresse geocodee : marqueur violet + vol de la carte
+  // + detection hors zone pour afficher l'avertissement
   function selectAdresse(a) {
     if (a) a = { ...a, horsZone: !inZone(a.lng, a.lat) }
     setSearched(a)
     if (a) setFlyTo([a.lng, a.lat])
   }
 
+  // "Implanter ici" : transforme l'adresse geocodee en brouillon d'implantation
   function implanterIci(a) {
     setDraft({ lat: a.lat, lng: a.lng })
     setAdding(true)
   }
 
+  // clic sur un equipement de la recherche : marqueur orange + fiche ouverte
   function selectEquipement(e) {
     setFocusEquip(e)
     if (e) setFlyTo([e.lon, e.lat])
   }
 
+  // met a jour les communes selectionnees : les chips (objets)
+  // ET les filtres envoyes a l'API (ids)
   function applyCommunes(next) {
     setCommuneObjs(next)
     setFilters((f) => ({ ...f, communes: next.map((c) => c.id) }))
   }
 
+  // clic sur une ville : ajout en chip de filtre (sans doublon)
+  // + centrage de la carte sur la mairie via le geocodage BAN
   async function selectVille(c) {
     if (!communeObjs.some((x) => x.id === c.id)) {
       applyCommunes([...communeObjs, c])
     }
-    // centre la carte sur la mairie de la commune
+    // type=municipality -> on recupere le centre de la commune (la mairie)
     const res = await fetchAdresses(c.nom, 'municipality')
     if (res.length) setFlyTo([res[0].lon, res[0].lat])
   }
@@ -93,6 +109,7 @@ function App() {
 
   return (
     <div>
+      {/* ── Bandeau superieur style Etat ── */}
       <header className="top">
         <div>
           <div className="marianne">République · Données BPE / INSEE</div>
@@ -109,7 +126,9 @@ function App() {
           <span className="user-zone">Non connecté</span>
         )}
       </header>
+
       <div className="layout">
+        {/* ── Barre laterale : connexion, recherche, filtres, implantations ── */}
         <aside className="sidebar">
           {!logged && <AuthPanel onLogin={onLogin} />}
           <SearchPanel
@@ -140,6 +159,8 @@ function App() {
             onFlyTo={setFlyTo}
           />
         </aside>
+
+        {/* ── Carte Leaflet ── */}
         <MapView
           filters={filters}
           implantations={implantations}

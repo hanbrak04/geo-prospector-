@@ -1,12 +1,18 @@
 import { useState } from 'react'
 
+// ajoute ou retire un code dans une liste de filtres (checkbox)
 function toggle(list, code) {
   return list.includes(code) ? list.filter((c) => c !== code) : [...list, code]
 }
 
+// Panneau des filtres :
+// - chips des villes selectionnees (via la barre de recherche)
+// - arbre des domaines BPE a 3 niveaux (depliable, checkbox par niveau)
+// Chaque changement remonte a App.jsx -> nouvelle requete API dans MapView.
 export default function FilterPanel({ domaines, filters, onChange, communeObjs, onRemoveCommune, onReset }) {
-  const [open, setOpen] = useState({})
+  const [open, setOpen] = useState({})   // quels niveaux de l'arbre sont deplies
 
+  // coche/decoche un code au niveau donne (d1, d2 ou d3)
   function setLevel(level, code) {
     onChange({ ...filters, [level]: toggle(filters[level], code) })
   }
@@ -15,6 +21,7 @@ export default function FilterPanel({ domaines, filters, onChange, communeObjs, 
     <div className="panel">
       <h2>Filtres</h2>
 
+      {/* villes selectionnees via la recherche : clic sur une chip pour la retirer */}
       {communeObjs.length > 0 && (
         <div>
           <h3>Villes</h3>
@@ -28,6 +35,8 @@ export default function FilterPanel({ domaines, filters, onChange, communeObjs, 
         </div>
       )}
 
+      {/* arbre des domaines : niveau 1 toujours visible,
+          niveaux 2 et 3 deplies via les boutons +/− */}
       <h3>Domaines</h3>
       <div className="tree">
         {domaines.map((d1) => (

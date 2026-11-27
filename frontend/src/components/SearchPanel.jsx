@@ -3,6 +3,9 @@ import { fetchAdresses, fetchCommunes, fetchEquipementsByNom } from '../api'
 
 const EMPTY = { villes: [], adresses: [], equipements: [] }
 
+// Barre de recherche unifiee : un seul champ interroge en parallele
+// les 3 sources (communes en base, adresses BAN, equipements par nom)
+// et groupe les resultats dans la meme dropdown.
 export default function SearchPanel({
   onSelectVille,
   onSelectAdresse,
@@ -14,8 +17,10 @@ export default function SearchPanel({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(EMPTY)
   const [searching, setSearching] = useState(false)
-  const seq = useRef(0)
+  const seq = useRef(0)   // numero de la derniere recherche (anti-course)
 
+  // appelee a chaque frappe : lance les 3 recherches en parallele
+  // et ignore les reponses des recherches devenues obsoletes
   async function search(q) {
     setQuery(q)
     if (q.length < 2) return setResults(EMPTY)
@@ -40,21 +45,25 @@ export default function SearchPanel({
     }
   }
 
+  // clic ville -> chip de filtre + centrage sur la mairie
   function pickVille(c) {
     onSelectVille(c)
     reset(`Ville : ${c.nom}`)
   }
 
+  // clic adresse -> marqueur violet + flyTo (+ warning hors zone cote App)
   function pickAdresse(a) {
     onSelectAdresse({ lat: a.lat, lng: a.lon, label: a.label })
     reset(a.label)
   }
 
+  // clic equipement -> marqueur orange + fiche ouverte
   function pickEquipement(e) {
     onSelectEquipement(e)
     reset(e.nom || e.domaine3_libelle)
   }
 
+  // ferme la dropdown et remplace le texte du champ par le choix
   function reset(value) {
     setResults(EMPTY)
     setQuery(value)
@@ -71,6 +80,8 @@ export default function SearchPanel({
         value={query}
         onChange={(e) => search(e.target.value)}
       />
+
+      {/* resultats groupes par source */}
       {hasResults && (
         <ul className="dropdown">
           {results.villes.length > 0 && <li className="group">🏙 Villes</li>}
@@ -95,6 +106,9 @@ export default function SearchPanel({
       {query.length >= 2 && !hasResults && !searching && (
         <p className="hint">Aucun résultat.</p>
       )}
+
+      {/* adresse selectionnee : rappel du label, warning si hors Normandie,
+          et possibilite d'en faire une implantation */}
       {searched && (
         <div>
           <p className="hint">📍 {searched.label}</p>

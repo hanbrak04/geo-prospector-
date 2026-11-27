@@ -1,5 +1,11 @@
+/* Styles de l'application — charte "Etat / data.gouv" (bleu #000091)
+   avec panneaux en cartes arrondies.
+   Structure : variables -> header -> layout/sidebar -> inputs/boutons
+   -> filtres -> carte/legendes -> marqueurs custom. */
+
 :root {
-  --blue: #000091;
+  --blue: #000091;        /* bleu marianne */
+  --blue-light: #e3e3fd;
   --blue-light: #e3e3fd;
   --border: #dddddd;
   --text: #161616;

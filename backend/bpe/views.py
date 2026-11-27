@@ -18,10 +18,14 @@ from .serializers import (
     RegisterSerializer,
 )
 
+# Nombre max d'equipements renvoyes par requete :
+# protege le navigateur (120 764 marqueurs le figeraient).
+# Le flag "truncated" previent le front que la reponse est tronquee.
 EQUIPEMENT_LIMIT = 5000
 
 
 def _parse_bbox(request):
+    """Parse le parametre ?bbox=minLon,minLat,maxLon,maxLat en polygone PostGIS."""
     raw = request.query_params.get("bbox")
     if not raw:
         return None
@@ -37,6 +41,10 @@ def _parse_bbox(request):
 def equipements(request):
     """Equipements dans la bbox affichee, filtres par domaines et communes.
 
+    GET /api/equipements/?bbox=W,S,E,N&d1=A&d2=A1&d3=A129&communes=1,2
+
+    Le front envoie la zone visible a chaque deplacement de la carte :
+    on ne charge jamais toute la region, seulement ce qui est affiche.
     Retourne du GeoJSON pour affichage direct dans Leaflet.
     """
     bbox = _parse_bbox(request)
@@ -46,10 +54,16 @@ def equipements(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    # geom__bboverlaps -> operateur && PostGIS : intersection rapide
+    # grace a l'index spatial GiST sur Equipement.geom
+    # select_related : jointures commune + domaine3 en une seule requete
+    # (evite 5000 requetes SQL supplementaires lors de la serialisation)
     qs = Equipement.objects.filter(geom__bboverlaps=bbox).select_related(
         "commune", "domaine3"
     )
 
+    # filtres par domaine : le parametre du niveau choisi filtre via la cascade
+    # ex. d1=A -> domaine3->parent (d2) ->parent (d1) -> code = "A"
     for param, field in (
         ("d1", "domaine3__parent__parent__code__in"),
         ("d2", "domaine3__parent__code__in"),
@@ -63,9 +77,11 @@ def equipements(request):
     if communes:
         qs = qs.filter(commune_id__in=communes.split(","))
 
-    count = qs.count()
-    qs = qs[:EQUIPEMENT_LIMIT]
+    count = qs.count()          # total reel dans la zone (avant troncature)
+    qs = qs[:EQUIPEMENT_LIMIT]  # LIMIT en SQL, pas en Python
 
+    # Serialisation manuelle en GeoJSON FeatureCollection
+    # (format compris nativement par le composant <GeoJSON> de react-leaflet)
     features = [
         {
             "type": "Feature",
@@ -101,7 +117,11 @@ def equipements(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def equipement_search(request):
-    """Recherche d'equipements par nom (?q=) sur toute la region."""
+    """Recherche d'equipements par nom (?q=) sur toute la region.
+
+    Contrairement a /equipements/, pas de bbox : la recherche porte
+    sur toute la Normandie. icontains = LIKE %q% insensible a la casse.
+    """
     q = request.query_params.get("q", "").strip()
     if len(q) < 2:
         return Response([])
@@ -131,7 +151,11 @@ def equipement_search(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def domaines(request):
-    """Arbre complet des domaines (3 niveaux) pour les filtres."""
+    """Arbre complet des domaines (3 niveaux imbriques) pour les filtres.
+
+    prefetch_related("enfants__enfants") charge les 3 niveaux en 3 requetes
+    au lieu d'une par domaine (evite le probleme N+1).
+    """
     qs = Domaine1.objects.prefetch_related("enfants__enfants").order_by("code")
     return Response(Domaine1Serializer(qs, many=True).data)
 
@@ -141,7 +165,10 @@ def domaines(request):
 def geocode(request):
     """Geocode une adresse via api-adresse.data.gouv.fr (BAN).
 
-    GET /api/geocode/?q=12 rue de la republique rouen
+    GET /api/geocode/?q=12 rue de la republique rouen&type=housenumber
+
+    Le backend fait proxy : le front n'appelle jamais l'API externe
+    directement (un seul point d'entree, plus simple a documenter).
     """
     q = request.query_params.get("q", "").strip()
     if len(q) < 3:
@@ -150,11 +177,13 @@ def geocode(request):
     params = {
         "q": q,
         "limit": 5,
-        # centre la recherche sur la Normandie
+        # biaise la recherche vers le centre de la Normandie
+        # (les adresses normandes remontent en premier)
         "lat": 49.1,
         "lon": 0.4,
     }
-    # filtre optionnel : municipality, street, housenumber, locality
+    # filtre optionnel BAN : municipality, street, housenumber, locality
+    # (utilise avec "municipality" pour centrer la carte sur la mairie d'une ville)
     if t := request.query_params.get("type"):
         params["type"] = t
 
@@ -168,6 +197,7 @@ def geocode(request):
             status=status.HTTP_502_BAD_GATEWAY,
         )
 
+    # on ne garde que ce dont le front a besoin
     return Response(
         [
             {
@@ -184,7 +214,7 @@ def geocode(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def communes(request):
-    """Liste des communes (filtre optionnel ?q= sur le nom)."""
+    """Liste des communes (filtre optionnel ?q= sur le nom, pour l'autocompletion)."""
     qs = Commune.objects.order_by("nom")
     q = request.query_params.get("q")
     if q:
@@ -192,9 +222,15 @@ def communes(request):
     return Response(CommuneSerializer(qs[:100], many=True).data)
 
 
+# ── Authentification par token ────────────────────────────────────
+# Le front stocke le token dans localStorage et le renvoie
+# dans le header "Authorization: Token xxx" a chaque requete.
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
+    """Creation de compte : le mot de passe est hashe par create_user
+    (jamais stocke en clair). Renvoie directement un token = auto-login."""
     serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.save()
@@ -208,6 +244,7 @@ def register(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login(request):
+    """Connexion : authenticate() verifie le hash du mot de passe."""
     user = authenticate(
         username=request.data.get("username"),
         password=request.data.get("password"),
@@ -223,12 +260,18 @@ def login(request):
 
 @api_view(["POST"])
 def logout(request):
+    """Deconnexion : suppression du token (requiert d'etre authentifie)."""
     request.auth.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ImplantationViewSet(viewsets.ModelViewSet):
-    """CRUD des implantations potentielles — chaque user ne voit que les siennes."""
+    """CRUD complet des implantations (GET/POST/PUT/DELETE generes par
+    le ModelViewSet + router DRF).
+
+    Securite : IsAuthenticated obligatoire, et chaque utilisateur
+    ne voit/modifie que SES implantations (filtre sur request.user).
+    """
 
     serializer_class = ImplantationSerializer
     permission_classes = [IsAuthenticated]
@@ -237,4 +280,5 @@ class ImplantationViewSet(viewsets.ModelViewSet):
         return Implantation.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        # le user est injecte depuis le token, jamais depuis le body
         serializer.save(user=self.request.user)

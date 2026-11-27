@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+"""Point d'entree des commandes Django : runserver, migrate, import_bpe...
+
+Utilise dans docker-compose (command: python manage.py runserver)
+et pour toutes les operations d'administration du projet."""
 import os
 import sys
 

@@ -6,7 +6,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // tout /api/* est relaye vers le backend Django (nom du service docker)
+      // toute requete /api/* est relayee vers le backend Django.
+      // 'backend' est le nom du service docker-compose : Docker le resout
+      // en IP du conteneur. Resultat : une seule URL (localhost:5173)
+      // pour le front ET l'API -> meme origine, pas de probleme CORS.
       '/api': {
         target: 'http://backend:8000',
         changeOrigin: true,

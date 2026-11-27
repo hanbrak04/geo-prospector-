@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { createImplantation, updateImplantation, deleteImplantation } from '../api'
 
+// Selecteur de type de commerce : la liste deroulante regroupe les 233
+// types BPE (niveau 3) par grand domaine (optgroup = niveau 1)
 function Domaine3Select({ domaines, value, onChange }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}>
@@ -18,14 +20,19 @@ function Domaine3Select({ domaines, value, onChange }) {
   )
 }
 
+// Gestion des implantations personnelles (CRUD complet) :
+// - "Ajouter" -> mode placement, un clic sur la carte cree le brouillon
+// - formulaire -> creation (POST) ou modification (PUT)
+// - liste -> clic pour voler au point, crayon pour editer, croix pour supprimer
 export default function ImplantationPanel({
   logged, domaines, implantations, adding, setAdding, draft, setDraft, onRefresh, onFlyTo,
 }) {
   const [titre, setTitre] = useState('')
   const [commentaire, setCommentaire] = useState('')
   const [domaine3, setDomaine3] = useState('')
-  const [editing, setEditing] = useState(null)
+  const [editing, setEditing] = useState(null)   // implantation en cours de modification
 
+  // deconnecte : simple invitation a se connecter
   if (!logged) {
     return (
       <div className="panel">
@@ -39,16 +46,21 @@ export default function ImplantationPanel({
     setTitre(''); setCommentaire(''); setDomaine3(''); setEditing(null); setDraft(null)
   }
 
+  // creation OU modification selon qu'un item est en edition
   async function save() {
     const payload = { titre, commentaire, domaine3: domaine3 || null }
     if (editing) {
+      // PUT : on renvoie la position existante (le point ne bouge pas)
       await updateImplantation(editing.id, { ...payload, lon: editing.geom.x, lat: editing.geom.y })
     } else {
+      // POST : la position vient du brouillon pose sur la carte
       await createImplantation({ ...payload, lon: draft.lng, lat: draft.lat })
     }
     resetForm(); setAdding(false); onRefresh()
   }
 
+  // passe en mode edition : pre-remplit le formulaire
+  // (geometry GeoJSON -> x/y pour la reenvoi en lon/lat au PUT)
   function startEdit(imp) {
     setEditing({ ...imp, geom: { x: imp.geometry.coordinates[0], y: imp.geometry.coordinates[1] } })
     setTitre(imp.titre)
@@ -68,7 +80,10 @@ export default function ImplantationPanel({
     <div className="panel">
       <h2>Implantations potentielles</h2>
 
+      {/* mode placement actif : l'utilisateur doit cliquer sur la carte */}
       {adding && <p className="hint">Cliquez sur la carte pour placer votre point…</p>}
+
+      {/* formulaire de creation : visible quand un brouillon est pose */}
       {draft && !editing && (
         <div className="form">
           <p className="hint">Point : {draft.lat.toFixed(5)}, {draft.lng.toFixed(5)}</p>
@@ -81,6 +96,8 @@ export default function ImplantationPanel({
           </div>
         </div>
       )}
+
+      {/* formulaire d'edition : meme champs, pre-remplis */}
       {editing && (
         <div className="form">
           <p className="hint">Modifier « {editing.titre} »</p>
@@ -98,6 +115,7 @@ export default function ImplantationPanel({
         <button onClick={() => setAdding(true)}>+ Ajouter une implantation</button>
       )}
 
+      {/* liste personnelle : clic -> la carte vole au point */}
       <ul className="list">
         {implantations.map((imp) => (
           <li key={imp.id}>

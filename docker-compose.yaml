@@ -1,52 +1,61 @@
+# Orchestration des 3 conteneurs du projet (exigence du sujet) :
+#   db       -> PostgreSQL + PostGIS (base geographique)
+#   backend  -> Django + DRF (API REST)
+#   frontend -> Node + Vite (React, hot-reload)
 
 services:
+
+  # ── Base de donnees geographique ────────────────────────────────
   db:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:16-3.4       # image officielle PostGIS (imposee par le sujet)
     container_name: geo_db
-    environment:
+    environment:                        # identifiants de la base creee au 1er demarrage
       POSTGRES_DB: geo_prospector
       POSTGRES_USER: geo_user
       POSTGRES_PASSWORD: geo_password
     ports:
-      - "5432:5432"
+      - "5432:5432"                     # port hote:conteneur (acces possible depuis la machine)
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
+      - postgres_data:/var/lib/postgresql/data   # volume persistant : les donnees survivent a docker compose down
+    healthcheck:                        # verifie que Postgres est VRAIMENT pret (pas juste lance)
       test: ["CMD-SHELL", "pg_isready -U geo_user -d geo_prospector"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # ── API Django ──────────────────────────────────────────────────
   backend:
-    build: ./backend
+    build: ./backend                    # image Python custom (Dockerfile : GDAL/GEOS pour GeoDjango)
     container_name: geo_backend
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8000   # serveur de dev Django
     volumes:
-      - ./backend:/app
-      - ./data:/data
+      - ./backend:/app                  # bind mount : le code reste hors du conteneur (exigence du sujet)
+      - ./data:/data                    # le parquet BPE est lu depuis /data par import_bpe
     ports:
       - "8000:8000"
-    environment:
+    environment:                        # connexion a la base (memes identifiants que db)
       DB_NAME: geo_prospector
       DB_USER: geo_user
       DB_PASSWORD: geo_password
-      DB_HOST: db
+      DB_HOST: db                       # "db" = nom du service : Docker le resout en IP du conteneur
       DB_PORT: 5432
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_healthy      # attend le healthcheck : sans ca, Django demarre avant Postgres et crashe
 
+  # ── Application React ───────────────────────────────────────────
   frontend:
     image: node:22
     container_name: geo_frontend
     working_dir: /app
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"   # install deps + serveur Vite accessible hors conteneur
     volumes:
-      - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
+      - ./frontend:/app                          # bind mount du code (exigence du sujet + HMR)
+      - frontend_node_modules:/app/node_modules  # volume : node_modules installe DANS le conteneur (evite les conflits hote)
     ports:
-      - "5173:5173"
+      - "5173:5173"                   # seule URL de l'app : Vite proxifie /api vers le backend
 
+# Volumes persistants geres par Docker
 volumes:
   postgres_data:
   frontend_node_modules:

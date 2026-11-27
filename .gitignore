@@ -1,0 +1,33 @@
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Mac
+.DS_Store
+__MACOSX/
+
+# Archives
+*.zip
+
+# Logs
+*.log

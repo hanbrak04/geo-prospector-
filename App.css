@@ -1,0 +1,223 @@
+.layout {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 340px;
+  overflow-y: auto;
+  padding: 16px;
+  background: #f7f8fa;
+  border-right: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+.sidebar h1 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.subtitle {
+  margin: 0 0 12px;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.panel h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+
+.panel h3 {
+  font-size: 0.85rem;
+  margin: 10px 0 4px;
+  color: #444;
+}
+
+.panel input[type='text'],
+.panel input:not([type]),
+.panel input[type='password'],
+.panel select,
+.panel textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 0.85rem;
+}
+
+.panel textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.panel button {
+  padding: 5px 10px;
+  border: 1px solid #1d6fd8;
+  background: #1d6fd8;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-right: 4px;
+}
+
+.panel button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.panel button.toggle {
+  background: none;
+  color: #1d6fd8;
+  border: none;
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+}
+
+.error {
+  color: #c00;
+  font-size: 0.8rem;
+  margin: 4px 0 0;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.dropdown {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  max-height: 160px;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.dropdown li {
+  padding: 5px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.dropdown li:hover {
+  background: #eef4fc;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.chip {
+  background: #dce9fb;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.tree {
+  font-size: 0.8rem;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.tree label {
+  display: inline;
+}
+
+.lvl2 {
+  margin-left: 16px;
+}
+
+.lvl3 {
+  margin-left: 32px;
+}
+
+.list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.85rem;
+}
+
+.list .link {
+  color: #1d6fd8;
+  cursor: pointer;
+}
+
+.list .actions button {
+  background: none;
+  color: #555;
+  border: none;
+  padding: 2px 4px;
+}
+
+.map-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.map {
+  height: 100%;
+  width: 100%;
+}
+
+.status {
+  position: absolute;
+  bottom: 12px;
+  left: 60px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.imp-icon {
+  background: none;
+}
+
+.imp-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e83a1d;
+  border: 2px solid #fff;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.imp-dot.draft {
+  background: #2ecc40;
+}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Geo Prospector — maquette Clean SaaS</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --bg: #f1f5f9; --panel: #ffffff; --border: #e2e8f0;
+    --text: #0f172a; --muted: #64748b; --accent: #4f46e5; --red: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; font-family: 'Inter', 'Segoe UI', sans-serif; }
+  .layout { display: flex; height: 100vh; background: var(--bg); }
+  .sidebar { width: 340px; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  .topbar { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #818cf8, var(--accent)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  h1 { font-size: 16px; color: var(--text); }
+  .tag { font-size: 11px; color: var(--muted); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
+  .card h2 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .card h2::before { content: ''; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+  input, select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 13px; margin-bottom: 8px; color: var(--text); }
+  input:focus { outline: 2px solid #c7d2fe; border-color: var(--accent); }
+  .btn { border: none; border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-outline { background: #fff; color: var(--accent); border: 1px solid #c7d2fe; }
+  .row { display: flex; gap: 8px; }
+  .chip { display: inline-block; background: #eef2ff; color: var(--accent); border-radius: 8px; padding: 3px 10px; font-size: 11px; font-weight: 600; margin: 2px; }
+  .pill { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; font-size: 13px; color: var(--text); cursor: pointer; }
+  .pill:hover { background: var(--bg); }
+  .pill .cb { width: 16px; height: 16px; border: 2px solid var(--border); border-radius: 5px; }
+  .pill.on .cb { background: var(--accent); border-color: var(--accent); }
+  .pill .cnt { margin-left: auto; font-size: 11px; color: var(--muted); background: var(--bg); padding: 1px 8px; border-radius: 10px; }
+  #map { flex: 1; border-radius: 14px 0 0 0; }
+  .map-card { flex: 1; padding: 16px; padding-left: 0; display: flex; flex-direction: column; }
+  .map-frame { flex: 1; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(15,23,42,.06); position: relative; }
+  #map2 { height: 100%; width: 100%; }
+  .stat-bar { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 1000; background: rgba(255,255,255,.95); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 12px; padding: 8px 16px; font-size: 12px; color: var(--muted); box-shadow: 0 4px 12px rgba(15,23,42,.1); }
+  .stat-bar b { color: var(--text); }
+  .imp { list-style: none; padding: 0; }
+  .imp li { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; font-size: 13px; }
+  .imp li:hover { background: var(--bg); }
+  .imp .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
+  .imp .actions { margin-left: auto; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="topbar">
+      <div class="avatar">G</div>
+      <div><h1>Geo Prospector</h1><div class="tag">Prospection · Normandie</div></div>
+    </div>
+    <div class="card">
+      <h2>Compte</h2>
+      <input placeholder="identifiant">
+      <input type="password" placeholder="mot de passe">
+      <div class="row">
+        <button class="btn btn-primary">Connexion</button>
+        <button class="btn btn-outline">S'inscrire</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Villes</h2>
+      <input placeholder="Rechercher une ville…">
+      <div><span class="chip">Rouen ✕</span><span class="chip">Caen ✕</span></div>
+    </div>
+    <div class="card">
+      <h2>Domaines d'activité</h2>
+      <div class="pill on"><div class="cb"></div>Commerces <span class="cnt">34 210</span></div>
+      <div class="pill on"><div class="cb"></div>Services particuliers <span class="cnt">21 402</span></div>
+      <div class="pill"><div class="cb"></div>Santé et action sociale <span class="cnt">18 776</span></div>
+      <div class="pill"><div class="cb"></div>Enseignement <span class="cnt">9 834</span></div>
+      <div class="pill"><div class="cb"></div>Sports, loisirs, culture <span class="cnt">15 901</span></div>
+      <div class="pill"><div class="cb"></div>Tourisme <span class="cnt">8 122</span></div>
+      <div class="pill"><div class="cb"></div>Transports <span class="cnt">12 519</span></div>
+    </div>
+    <div class="card">
+      <h2>Mes implantations</h2>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:8px">+ Nouvelle implantation</button>
+      <ul class="imp">
+        <li><span class="dot"></span>Zone Tourville-la-Rivière<span class="actions">✎ ✕</span></li>
+        <li><span class="dot"></span>Centre-ville Lisieux<span class="actions">✎ ✕</span></li>
+      </ul>
+    </div>
+  </aside>
+  <div class="map-card">
+    <div class="map-frame">
+      <div id="map2"></div>
+      <div class="stat-bar"><b>2 494</b> équipements affichés · <b>2</b> villes · <b>2</b> domaines</div>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map2').setView([49.1, 0.4], 9);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO' }).addTo(map);
+  for (let i = 0; i < 80; i++) {
+    L.circleMarker([49.1 + (Math.random()-.5)*.8, 0.4 + (Math.random()-.5)*1.4],
+      { radius: 5, fillColor: '#4f46e5', color: '#fff', weight: 1.5, fillOpacity: .85 }).addTo(map);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Geo Prospector — maquette "data.gouv"</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --blue: #000091; --blue-light: #e3e3fd; --grey: #f6f6f6;
+    --border: #dddddd; --text: #161616; --muted: #666666; --red: #e1000f;
+  }
+  * { box-sizing: border-box; margin: 0; font-family: 'Marianne', 'Segoe UI', Arial, sans-serif; }
+  header { background: var(--blue); color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+  .marianne { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; opacity: .8; }
+  header h1 { font-size: 20px; font-weight: 700; }
+  header .spacer { flex: 1; }
+  header .btn { background: #fff; color: var(--blue); border: none; padding: 8px 16px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .layout { display: flex; height: calc(100vh - 64px); }
+  .sidebar { width: 330px; border-right: 1px solid var(--border); overflow-y: auto; }
+  .section { border-bottom: 1px solid var(--border); padding: 16px 20px; }
+  .section h2 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: var(--blue); }
+  input, select, textarea { width: 100%; border: none; border-bottom: 2px solid var(--text); background: #eeeeee; padding: 9px 12px; font-size: 13px; margin-bottom: 8px; }
+  input:focus { border-bottom-color: var(--blue); outline: none; }
+  .btn-primary { background: var(--blue); color: #fff; border: none; padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn-secondary { background: #fff; color: var(--blue); border: 1px solid var(--blue); padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .row { display: flex; gap: 8px; }
+  .checkline { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; padding: 6px 0; }
+  .checkline input { width: auto; margin: 0; }
+  .checkline .sub { margin-left: 24px; color: var(--muted); font-size: 12px; }
+  .tag { display: inline-block; background: var(--blue-light); color: var(--blue); padding: 3px 10px; font-size: 12px; font-weight: 700; margin: 2px; }
+  #map { flex: 1; }
+  .legend { position: absolute; bottom: 20px; right: 16px; z-index: 1000; background: #fff; border: 1px solid var(--border); padding: 10px 14px; font-size: 12px; }
+  .legend .k { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  .legend .sw { width: 12px; height: 12px; border-radius: 50%; }
+  .statusbar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1000; background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--blue); padding: 8px 16px; font-size: 12px; }
+  .imp { list-style: none; padding: 0; }
+  .imp li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .imp b { color: var(--red); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="marianne">République · Données BPE / INSEE</div>
+    <h1>Geo Prospector</h1>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn">Se connecter</button>
+</header>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="section">
+      <h2>Filtrer par territoire</h2>
+      <input placeholder="Commune, code postal…">
+      <div><span class="tag">Rouen ✕</span><span class="tag">Caen ✕</span></div>
+    </div>
+    <div class="section">
+      <h2>Filtrer par domaine</h2>
+      <div class="checkline"><input type="checkbox" checked><div>Commerces<div class="sub">Alimentation · Équipement · Grandes surfaces…</div></div></div>
+      <div class="checkline"><input type="checkbox"><div>Services pour les particuliers</div></div>
+      <div class="checkline"><input type="checkbox"><div>Enseignement</div></div>
+      <div class="checkline"><input type="checkbox"><div>Santé et action sociale</div></div>
+      <div class="checkline"><input type="checkbox"><div>Transports et déplacements</div></div>
+      <div class="checkline"><input type="checkbox"><div>Sports, loisirs et culture</div></div>
+      <div class="checkline"><input type="checkbox"><div>Tourisme</div></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn-primary">Appliquer</button>
+        <button class="btn-secondary">Réinitialiser</button>
+      </div>
+    </div>
+    <div class="section">
+      <h2>Mes implantations potentielles</h2>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Réservé aux utilisateurs connectés.</p>
+      <button class="btn-primary" style="width:100%">+ Ajouter un point</button>
+      <ul class="imp">
+        <li><b>●</b> Zone Tourville<span>✎ ✕</span></li>
+        <li><b>●</b> Centre Lisieux<span>✎ ✕</span></li>
+      </ul>
+    </div>
+  </aside>
+  <div id="map">
+    <div class="statusbar"><b>2 494 équipements</b> dans la zone affichée</div>
+    <div class="legend">
+      <div class="k"><span class="sw" style="background:#000091"></span>Équipement BPE</div>
+      <div class="k"><span class="sw" style="background:#e1000f"></span>Implantation potentielle</div>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([49.1, 0.4], 9);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+  for (let i = 0; i < 80; i++) {
+    L.circleMarker([49.1 + (Math.random()-.5)*.8, 0.4 + (Math.random()-.5)*1.4],
+      { radius: 5, fillColor: '#000091', color: '#fff', weight: 1.5, fillOpacity: .9 }).addTo(map);
+  }
+</script>
+</body>
+</html>

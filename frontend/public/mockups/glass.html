@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Geo Prospector — maquette Glass</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --text: #172033; --muted: #6b7790;
+    --accent: #0ea5e9; --accent-dark: #0284c7; --accent-soft: rgba(14,165,233,.12);
+    --red: #f43f5e; --glass: rgba(255,255,255,.82); --border: rgba(255,255,255,.6);
+  }
+  * { box-sizing: border-box; margin: 0; font-family: 'Inter', 'Segoe UI', sans-serif; }
+  #map { position: absolute; inset: 0; }
+  .float {
+    background: var(--glass);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(23,32,51,.15);
+  }
+  .sidebar { position: absolute; top: 16px; left: 16px; bottom: 16px; width: 330px; z-index: 1000; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #22d3ee); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  h1 { font-size: 17px; color: var(--text); }
+  .tag { font-size: 11px; color: var(--muted); }
+  .sep { border-top: 1px solid rgba(23,32,51,.08); }
+  .sec h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 10px; }
+  .sec { padding-top: 14px; }
+  input, select, textarea { width: 100%; background: rgba(255,255,255,.8); border: 1.5px solid rgba(23,32,51,.12); border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 8px; color: var(--text); }
+  input:focus { outline: none; border-color: var(--accent); }
+  .btn { border: none; border-radius: 25px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; box-shadow: 0 4px 12px rgba(14,165,233,.4); }
+  .btn-soft { background: var(--accent-soft); color: var(--accent-dark); }
+  .row { display: flex; gap: 8px; }
+  .chip { display: inline-block; background: var(--accent-soft); color: var(--accent-dark); border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 600; margin: 2px; }
+  .dom { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; font-size: 13px; color: var(--text); cursor: pointer; }
+  .dom:hover { background: rgba(14,165,233,.07); }
+  .dom .cb { width: 18px; height: 18px; border: 2px solid rgba(23,32,51,.25); border-radius: 6px; flex-shrink: 0; }
+  .dom.on .cb { background: var(--accent); border-color: var(--accent); }
+  .pillbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 10px 24px; font-size: 13px; color: var(--muted); }
+  .pillbar b { color: var(--accent-dark); font-size: 15px; }
+  .imp { list-style: none; padding: 0; }
+  .imp li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; font-size: 13px; }
+  .imp li:hover { background: rgba(14,165,233,.07); }
+  .imp .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
+  .imp .actions { margin-left: auto; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<aside class="sidebar float">
+  <div class="brand">
+    <div class="logo">◎</div>
+    <div><h1>Geo Prospector</h1><div class="tag">Normandie · BPE 2025</div></div>
+  </div>
+  <div class="sep"></div>
+  <div class="sec">
+    <h2>Connexion</h2>
+    <input placeholder="Identifiant">
+    <input type="password" placeholder="Mot de passe">
+    <div class="row">
+      <button class="btn btn-primary" style="flex:1">Connexion</button>
+      <button class="btn btn-soft">S'inscrire</button>
+    </div>
+  </div>
+  <div class="sec">
+    <h2>Villes</h2>
+    <input placeholder="Rechercher une ville…">
+    <div><span class="chip">Rouen ✕</span><span class="chip">Caen ✕</span></div>
+  </div>
+  <div class="sec">
+    <h2>Domaines</h2>
+    <div class="dom on"><div class="cb"></div>Commerces</div>
+    <div class="dom"><div class="cb"></div>Services particuliers</div>
+    <div class="dom"><div class="cb"></div>Santé et action sociale</div>
+    <div class="dom"><div class="cb"></div>Enseignement</div>
+    <div class="dom"><div class="cb"></div>Sports, loisirs, culture</div>
+    <div class="dom"><div class="cb"></div>Tourisme</div>
+  </div>
+  <div class="sec">
+    <h2>Mes implantations</h2>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:6px">+ Ajouter un point</button>
+    <ul class="imp">
+      <li><span class="dot"></span>Zone Tourville<span class="actions">✎ ✕</span></li>
+      <li><span class="dot"></span>Centre Lisieux<span class="actions">✎ ✕</span></li>
+    </ul>
+  </div>
+</aside>
+<div class="pillbar float"><b>2 494</b> équipements · <b>2</b> villes · <b>1</b> domaine</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([49.1, 0.4], 9);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO' }).addTo(map);
+  for (let i = 0; i < 80; i++) {
+    L.circleMarker([49.1 + (Math.random()-.5)*.8, 0.4 + (Math.random()-.5)*1.4],
+      { radius: 6, fillColor: '#0ea5e9', color: '#fff', weight: 2, fillOpacity: .85 }).addTo(map);
+  }
+</script>
+</body>
+</html>
